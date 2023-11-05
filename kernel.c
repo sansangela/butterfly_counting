@@ -7,6 +7,10 @@
 #define BASE_FREQ 1.2
 #define NUM_INST 1
 
+int* A_0_values = NULL;
+int* A_0_columns = NULL;
+int* A_0_row_ptr = NULL;
+
 static __inline__ unsigned long long rdtsc(void) {
   unsigned hi, lo;
   __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
@@ -49,32 +53,23 @@ void matrix_multiply_simd(const int A_0_values[], const int A_0_columns[],
         for (int i = 0; i < num_rows_A_0; i++){
             int j = A_0_row_ptr[i];     // A0_start
             int A0_end = A_0_row_ptr[i+1];
-
-            for (j; j < A0_end; j+=8) {
-                if (j < A0_end - 8) {
-                    A0 = _mm256_loadu_si256(&A_0_columns[j]);
-                    // TO DO
-                    printf("TO BE TESTED\n");
-                } else {
-                    // Load rest of A0[i:,]
-                    int j_offset = j;
-                    int zeros[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
-                    for (j; j < A0_end; j++) {
-                        zeros[j-j_offset] = A_0_columns[j];
-                    }
-                    A0 = _mm256_loadu_si256(&zeros[0]);
-
-                    mask = _mm256_cmpeq_epi32(A0, a1_broadcast);
-                    
-                    /* Debug Variables */
-                    // _mm256_storeu_si256(&out1[0],A0);
-                    // _mm256_storeu_si256(&out2[0],a1_broadcast);
-                    // _mm256_storeu_si256(&out3[0],mask);
-                }
+            for (j; j < A0_end - 8; j+=8) {
+                A0 = _mm256_loadu_si256(&A_0_columns[j]);
+                // printf("A0\n");
+                // for (int tmp = 0; tmp < 8; ++ tmp) {
+                //     printf("%d ", A_0_columns[j+tmp]);
+                // }
+                // printf("\n");
+                mask = _mm256_cmpeq_epi32(A0, a1_broadcast);
+                
+                /* Debug Variables */
+                // _mm256_storeu_si256(&out1[0],A0);
+                // _mm256_storeu_si256(&out2[0],a1_broadcast);
+                // _mm256_storeu_si256(&out3[0],mask);
 
                 int has_minus_one = !_mm256_testz_si256(mask, mask);
                 if (has_minus_one != 0) {
-                    counter[i]++;
+                    counter[a_1_columns[col_idx]]++;
                     break;
                 }
                 
@@ -105,6 +100,33 @@ void matrix_multiply_simd(const int A_0_values[], const int A_0_columns[],
     printf("\n");
 }
 
+// omit values as not relevant to the kenel
+void pad_csr(int* columns, int* row_ptr, int num_rows) {
+    // Calculate new length for values and columns
+    int new_length = row_ptr[num_rows] + 8 * num_rows;
+
+    // Allocate memory for columns arrays
+    A_0_columns = (int*)malloc(new_length * sizeof(int));
+    A_0_row_ptr = (int*)malloc((row_ptr)[num_rows] * sizeof(int));
+
+    // For each row
+    for (int i = 0; i < num_rows; i++) {
+        // Copy existing columns
+        for (int j = row_ptr[i]; j < row_ptr[i+1]; j++) {
+            A_0_columns[j + 8*i] = columns[j];
+        }
+        // Add eight -1 columns
+        for (int j = 0; j < 8; j++) {
+            A_0_columns[row_ptr[i+1] + 8*i + j] = -1;
+        }
+    }
+    
+    // Update row_ptr
+    for (int i = 1; i <= num_rows; i++) {
+        A_0_row_ptr[i] += row_ptr[i] + 8 * i;
+    }
+}
+
 int main(int argc, char **argv) {
     printf("Testing kernel\n");
 
@@ -115,16 +137,27 @@ int main(int argc, char **argv) {
     unsigned long long sum = 0;
     
     // Example data in CSR format
-    int A_0_values[] = {1, 1, 1, 1, 1, 1};
-    int A_0_columns[] = {1, 0, 2, 1, 3, 2, 3};
-    int A_0_row_ptr[] = {0, 1, 3, 5, 7}; // CSR row_ptr
+    int A_0_values_origin[] = {1, 1, 1, 1, 1, 1};
+    int A_0_columns_origin[] = {1, 0, 2, 0, 3, 1, 3};
+    int A_0_row_ptr_origin[] = {0, 1, 3, 5, 7}; // CSR row_ptr
     int num_rows_A_0 = 4;
     int num_cols_A_0 = 4;
-    int num_cols_a_1 = 2;
+    int num_cols_a_1 = 4;
+    
+    pad_csr(A_0_columns_origin, A_0_row_ptr_origin, num_rows_A_0);
+    // debug_prints
+    // printf("\nA_0_row_ptr: \n");
+    // for (int i = 0; i < 5; ++i) {
+    //     printf("%d ", A_0_row_ptr[i]);
+    // }
+    // printf("\nA_0_columns: \n");
+    // for (int i = 0; i < A_0_row_ptr[num_rows_A_0]; ++i) {
+    //     printf("%d ", A_0_columns[i]);
+    // }
 
     int a_1_values[] = {1, 1};
-    int a_1_columns[] = {0, 2};
-    int a_1_row_ptr[] = {0, 2}; // CSR row_ptr
+    int a_1_columns[] = {0,1,2, 3};
+    int a_1_row_ptr[] = {0, 4}; // CSR row_ptr
 
     for (int run_id = 0; run_id < runs; run_id++) {
         st = rdtsc();
