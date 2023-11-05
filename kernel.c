@@ -26,12 +26,35 @@ void mm_kernel() {
 #endif
 
 
+#define kernel1(A_0_columns, a1_broadcast, r0, j, flag) \
+    r0 = _mm256_cmpeq_epi32( r0, a1_broadcast);\
+    flag |= !_mm256_testz_si256(r0, r0);
+
+#define kernel2(A_0_columns, a1_broadcast, r0, r1, j, flag) \
+    kernel1(A_0_columns, a1_broadcast, r0, j, flag) \
+    kernel1(A_0_columns, a1_broadcast, r1, j, flag)
+
+#define kernel4(A_0_columns, a1_broadcast, r0, r1,r2,r3, j, flag) \
+    kernel2(A_0_columns, a1_broadcast, r0, r1, j, flag) \
+    kernel2(A_0_columns, a1_broadcast, r2, r3, j, flag)
+
+#define kernel8(A_0_columns, a1_broadcast, r0, r1,r2,r3,r4,r5,r6,r7, j, flag) \
+    kernel4(A_0_columns, a1_broadcast, r0, r1, r2, r3, j, flag) \
+    kernel4(A_0_columns, a1_broadcast, r4, r5, r6, r7, j, flag) 
+
+#define kernel15(A_0_columns, a1_broadcast, r0, r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14, j, flag) \
+    kernel8(A_0_columns, a1_broadcast, r0, r1,r2,r3,r4,r5,r6,r7, j, flag) \
+    kernel4(A_0_columns, a1_broadcast, r8, r9, r10, r11, j, flag) \
+    kernel2(A_0_columns, a1_broadcast, r12, r13, j, flag) \
+    kernel1(A_0_columns, a1_broadcast, r14, j, flag)
+
 void matrix_multiply_simd(const int A_0_values[], const int A_0_columns[],
                           const int A_0_row_ptr[], const int a_1_values[],
                           const int a_1_columns[], const int a_1_row_ptr[],
                           int num_rows_A_0, int num_cols_A_0, int num_cols_a_1) {
 
-    __m256i a1_broadcast, A0, mask;
+    __m256i a1_broadcast;
+    __m256i r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14;
     int *counter = (int *)malloc(sizeof(int) * num_rows_A_0);
     for (int i = 0; i < num_rows_A_0; i++) {
         counter[i] = 0;
@@ -45,50 +68,65 @@ void matrix_multiply_simd(const int A_0_values[], const int A_0_columns[],
 
     // Load a1
     for (int col_idx = 0; col_idx < num_cols_a_1; col_idx++) {
-    // for (int col_idx = 1; col_idx < num_cols_a_1; col_idx++) {  <- if 1-indexed
         a1_broadcast = _mm256_set1_epi32(a_1_columns[col_idx]);
-
 
         // Load A0[i,:]
         for (int i = 0; i < num_rows_A_0; i++){
             int j = A_0_row_ptr[i];     // A0_start
             int A0_end = A_0_row_ptr[i+1];
-            for (j; j < A0_end - 8; j+=8) {
-                A0 = _mm256_loadu_si256(&A_0_columns[j]);
-                // printf("A0\n");
-                // for (int tmp = 0; tmp < 8; ++ tmp) {
-                //     printf("%d ", A_0_columns[j+tmp]);
-                // }
-                // printf("\n");
-                mask = _mm256_cmpeq_epi32(A0, a1_broadcast);
-                
-                /* Debug Variables */
-                // _mm256_storeu_si256(&out1[0],A0);
-                // _mm256_storeu_si256(&out2[0],a1_broadcast);
-                // _mm256_storeu_si256(&out3[0],mask);
-
-                int has_minus_one = !_mm256_testz_si256(mask, mask);
-                if (has_minus_one != 0) {
+            int flag = 0;
+            while (j < A0_end - 8) {
+                if (j + 120 < A0_end) {
+                    r0 = _mm256_loadu_si256(&A_0_columns[j]);
+                    r1 = _mm256_loadu_si256(&A_0_columns[j+8]);
+                    r2 = _mm256_loadu_si256(&A_0_columns[j+16]);
+                    r3 = _mm256_loadu_si256(&A_0_columns[j+24]);
+                    r4 = _mm256_loadu_si256(&A_0_columns[j+32]);
+                    r5 = _mm256_loadu_si256(&A_0_columns[j+40]);
+                    r6 = _mm256_loadu_si256(&A_0_columns[j+48]);
+                    r7 = _mm256_loadu_si256(&A_0_columns[j+56]);
+                    r8 = _mm256_loadu_si256(&A_0_columns[j+64]);
+                    r9 = _mm256_loadu_si256(&A_0_columns[j+72]);
+                    r10 = _mm256_loadu_si256(&A_0_columns[j+80]);
+                    r11 = _mm256_loadu_si256(&A_0_columns[j+88]);
+                    r12 = _mm256_loadu_si256(&A_0_columns[j+96]);
+                    r13 = _mm256_loadu_si256(&A_0_columns[j+104]);
+                    r14 = _mm256_loadu_si256(&A_0_columns[j+112]);
+                    kernel15(A_0_columns, a1_broadcast, r0, r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14, j, flag);
+                    j += 120;
+                } else if (j + 64 < A0_end) {
+                    r0 = _mm256_loadu_si256(&A_0_columns[j]);
+                    r1 = _mm256_loadu_si256(&A_0_columns[j+8]);
+                    r2 = _mm256_loadu_si256(&A_0_columns[j+16]);
+                    r3 = _mm256_loadu_si256(&A_0_columns[j+24]);
+                    r4 = _mm256_loadu_si256(&A_0_columns[j+32]);
+                    r5 = _mm256_loadu_si256(&A_0_columns[j+40]);
+                    r6 = _mm256_loadu_si256(&A_0_columns[j+48]);
+                    r7 = _mm256_loadu_si256(&A_0_columns[j+56]);
+                    kernel8(A_0_columns, a1_broadcast, r0, r1,r2,r3,r4,r5,r6,r7, j, flag);
+                    j+=64;
+                } else if (j + 32 < A0_end) {
+                    r0 = _mm256_loadu_si256(&A_0_columns[j]);
+                    r1 = _mm256_loadu_si256(&A_0_columns[j+8]);
+                    r2 = _mm256_loadu_si256(&A_0_columns[j+16]);
+                    r3 = _mm256_loadu_si256(&A_0_columns[j+24]);
+                    kernel4(A_0_columns, a1_broadcast, r0, r1,r2,r3, j, flag);
+                    j+=32;
+                } else if (j + 16 < A0_end) {
+                    r0 = _mm256_loadu_si256(&A_0_columns[j]);
+                    r1 = _mm256_loadu_si256(&A_0_columns[j+8]);
+                    kernel2(A_0_columns, a1_broadcast, r0, r1, j, flag);
+                    j+=16;
+                } else {
+                    r0 = _mm256_loadu_si256(&A_0_columns[j]);
+                    kernel1(A_0_columns, a1_broadcast, r0, j, flag);
+                    j+=8;
+                }
+                if (flag != 0) {
                     counter[a_1_columns[col_idx]]++;
                     break;
                 }
-                
             }
-
-            /* Debug Prints */
-            // printf("\nA0:\n");
-            // for (int print_i = 0; print_i < 8; print_i++) {
-            //     printf("%d ", out1[print_i]);
-            // }
-            // printf("\na1:\n");
-            // for (int print_i = 0; print_i < 8; print_i++) {
-            //     printf("%d ", out2[print_i]);
-            // }
-            // printf("\nmask:\n");
-            // for (int print_i = 0; print_i < 8; print_i++) {
-            //     printf("%d ", out3[print_i]);
-            // }
-            
         }
 
     }
@@ -156,7 +194,7 @@ int main(int argc, char **argv) {
     // }
 
     int a_1_values[] = {1, 1};
-    int a_1_columns[] = {0,1,2, 3};
+    int a_1_columns[] = {0, 1, 2, 3};
     int a_1_row_ptr[] = {0, 4}; // CSR row_ptr
 
     for (int run_id = 0; run_id < runs; run_id++) {
