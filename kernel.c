@@ -11,6 +11,8 @@
 unsigned long long st;
 unsigned long long et;
 unsigned long long sum = 0;
+unsigned long long scalar_sum = 0;
+
 unsigned long long num_ops = 0;
 
 int *A_0_values = NULL;
@@ -41,7 +43,7 @@ static __inline__ unsigned long long rdtsc(void) {
 
 #define kernel1(A_0_columns, a1_broadcast, r0, j, flag)                        \
   r0 = _mm256_cmpeq_epi32(r0, a1_broadcast);                                   \
-  flag |= !_mm256_testz_si256(r0, r0);
+  flag = flag | !_mm256_testz_si256(r0, r0);
 
 #define kernel2(A_0_columns, a1_broadcast, r0, r1, j, flag)                    \
   kernel1(A_0_columns, a1_broadcast, r0, j, flag)                              \
@@ -258,20 +260,73 @@ void matrix_multiply_scalar(const int A_0_columns[], const int A_0_row_ptr[],
 
       // Scalar Baseline: Linear Search
       for (int j = A_0_row_ptr[i]; j < A_0_row_ptr[i + 1]; j++) {
-        num_ops+=5;   // comparison and increment 2 + for loop 2
+        num_ops+=1;   // comparison and increment 2 + for loop 2
         if (A_0_columns[j] == A_0_columns[col_idx]) {
           counter++;
+          num_ops++;
           break;
         }
       }
 
-      num_ops+=2; // for loop 2
+      // num_ops+=2; // for loop 2
     }
     butterfly_count += counter * counter - counter;
-    num_ops += 5; // multiplication, subtraction, addition & assignment 3 + for loop 2
+    // num_ops += 3; // multiplication, subtraction, addition & assignment 3 + for loop 2
   }
 }
 
+int random_in_range(int min, int max) {
+    return min + rand() % (max - min + 1);
+}
+
+// Function to compare two integers for qsort
+int compare_ints(const void *a, const void *b) {
+    int arg1 = *(const int *)a;
+    int arg2 = *(const int *)b;
+    return (arg1 > arg2) - (arg1 < arg2);
+}
+
+void generate_random_csr(int **columns, int **row_ptr, int num_rows, int num_cols, float sparsity) {
+    int total_elements = (int)(num_rows * num_cols * sparsity);
+    *columns = (int *)malloc(total_elements * sizeof(int));
+    *row_ptr = (int *)malloc((num_rows + 1) * sizeof(int));
+
+    (*row_ptr)[0] = 0;
+    int current_index = 0;
+
+    for (int i = 0; i < num_rows; i++) {
+        int num_elements_in_row = random_in_range(0, (int)(num_cols * sparsity));
+
+        // Generate unique column indices for this row
+        int *temp_cols = (int *)malloc(num_elements_in_row * sizeof(int));
+        for (int j = 0; j < num_elements_in_row; j++) {
+            int new_col;
+            do {
+                new_col = random_in_range(0, num_cols - 1);
+            } while (is_present(temp_cols, j, new_col)); // Ensure uniqueness
+            temp_cols[j] = new_col;
+        }
+
+        // Sort the column indices
+        qsort(temp_cols, num_elements_in_row, sizeof(int), compare_ints);
+
+        // Copy to the main columns array
+        for (int j = 0; j < num_elements_in_row; j++) {
+            (*columns)[current_index++] = temp_cols[j];
+        }
+        free(temp_cols);
+
+        (*row_ptr)[i + 1] = current_index;
+    }
+}
+
+// Helper function to check if a value is already present in an array
+int is_present(int *array, int size, int value) {
+    for (int i = 0; i < size; i++) {
+        if (array[i] == value) return 1;
+    }
+    return 0;
+}
 
 int main(int argc, char **argv) {
   printf("Testing kernel\n");
@@ -286,18 +341,32 @@ int main(int argc, char **argv) {
   // printf("\n");
 
   // Example data in CSR format
-  int A_0_columns_origin[] = {0, 1, 3, 4, 5, 7, 8, 9, 1, 2, 6, 7, 8, 0,
-                              1, 2, 4, 8, 9, 1, 3, 4, 7, 1, 2, 4, 9, 3,
-                              4, 5, 6, 7, 8, 9, 4, 5, 6, 7, 8, 9, 0, 1,
-                              2, 3, 5, 8, 9, 0, 1, 3, 7, 1, 6, 7, 8, 9};
-  int A_0_row_ptr_origin[] = {0,  8,  13, 19, 23, 27,
-                              34, 40, 47, 51, 56}; // CSR row_ptr
-  int num_rows_A_0 = 10;
-  int num_cols_A_0 = 10;
+  // int A_0_columns_origin[] = {0, 1, 3, 4, 5, 7, 8, 9, 1, 2, 6, 7, 8, 0,
+  //                             1, 2, 4, 8, 9, 1, 3, 4, 7, 1, 2, 4, 9, 3,
+  //                             4, 5, 6, 7, 8, 9, 4, 5, 6, 7, 8, 9, 0, 1,
+  //                             2, 3, 5, 8, 9, 0, 1, 3, 7, 1, 6, 7, 8, 9};
+  // int A_0_row_ptr_origin[] = {0,  8,  13, 19, 23, 27,
+  //                             34, 40, 47, 51, 56}; // CSR row_ptr
+  int num_rows_A_0 = 1000;
+  int num_cols_A_0 = 1000;
 
 
+  // int num_rows, num_cols;
+  float sparsity = 0.02;
+
+  int *A_0_columns_origin, *A_0_row_ptr_origin;
+  generate_random_csr(&A_0_columns_origin, &A_0_row_ptr_origin, num_rows_A_0, num_cols_A_0, sparsity);
+
+  // for (int i = 0; i <= 10; i++) {
+  //   printf("%d ", A_0_row_ptr_origin[i]);
+  // }
+  // printf("\n");
+  // for (int i = 0; i < A_0_row_ptr_origin[10]; i++) {
+  //   printf("%d ", A_0_columns_origin[i]);
+  // }
+  // printf("\n");
   // // int runs = atoi(argv[1]);
-  int runs = 10;
+  int runs = 1;
 
   num_ops = 0;
   pad_csr(A_0_columns_origin, A_0_row_ptr_origin, num_rows_A_0);
@@ -313,22 +382,26 @@ int main(int argc, char **argv) {
       matrix_multiply_simd(A_0_columns, A_0_row_ptr, a_1_columns_start, a_1_row,
                            num_cols_A_0, num_cols_a_1);
       
-      // // Scalar test
-      // st = rdtsc();
-      // matrix_multiply_scalar(A_0_columns, A_0_row_ptr, a_1_columns_start, a_1_row,
+      // Scalar test
+      st = rdtsc();
+      matrix_multiply_scalar(A_0_columns, A_0_row_ptr, a_1_columns_start, a_1_row,
+                           num_cols_A_0, num_cols_a_1);
+      // matrix_multiply_scalar_two_pointer(A_0_columns, A_0_row_ptr, a_1_columns_start, a_1_row,
       //                      num_cols_A_0, num_cols_a_1);
-      // // matrix_multiply_scalar_two_pointer(A_0_columns, A_0_row_ptr, a_1_columns_start, a_1_row,
-      // //                      num_cols_A_0, num_cols_a_1);
-      // et = rdtsc();
-      // sum += (et - st);
+      et = rdtsc();
+      scalar_sum += (et - st);
     }
-    butterfly_count /= 2;
+    butterfly_count /= 4;
     printf("butterfly_count: %lld\n", butterfly_count);
   }
 
-  num_ops = 10144;  // needed for SIMD
+  // num_ops = 10144;  // needed for SIMD
   // num_ops /= runs;   // needed for scalar
+  printf("number of edges: %d\n", A_0_row_ptr_origin[num_rows_A_0]);
   printf("num_ops=%llu\n", num_ops);
+  printf("scalar RDTSC Base Cycles Taken: %llu\n\r", scalar_sum);
+  printf("scalar Latency: %lf\n\r", ((MAX_FREQ/BASE_FREQ) * scalar_sum) / (num_ops * runs));
+  printf("scalar Throughput: %lf\n", (num_ops*runs)/((double)scalar_sum*MAX_FREQ/BASE_FREQ));
   printf("RDTSC Base Cycles Taken: %llu\n\r", sum);
   printf("Latency: %lf\n\r", ((MAX_FREQ/BASE_FREQ) * sum) / (num_ops * runs));
   printf("Throughput: %lf\n", (num_ops*runs)/((double)sum*MAX_FREQ/BASE_FREQ));
