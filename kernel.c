@@ -258,16 +258,49 @@ void matrix_multiply_scalar(const int A_0_columns[], const int A_0_row_ptr[],
 
       // Scalar Baseline: Linear Search
       for (int j = A_0_row_ptr[i]; j < A_0_row_ptr[i + 1]; j++) {
-        num_ops+=5;   // comparison and increment 2 + for loop 2
+        num_ops++;   // comparison and increment 2 + for loop 2
         if (A_0_columns[j] == A_0_columns[col_idx]) {
+          num_ops++;
           counter++;
           break;
         }
       }
 
-      num_ops+=2; // for loop 2
+      // num_ops+=2; // for loop 2
     }
     butterfly_count += counter * counter - counter;
+    num_ops += 3; // multiplication, subtraction, addition & assignment 3 + for loop 2
+  }
+}
+
+void matrix_multiply_scalar_two_pointer(const int A_0_columns[], const int A_0_row_ptr[],
+                          int a_1_columns_start, int num_rows_A_0,
+                          int num_cols_A_0, int num_cols_a_1) {
+
+  int counter = 0;
+  
+  // Load A0[i,:]
+  for (int i = 0; i < num_rows_A_0; i++) {
+    counter = 0;
+    int A_0_start_idx = A_0_row_ptr[i];
+    int a_1_start_idx = a_1_columns_start;
+    
+    while ((A_0_start_idx < A_0_row_ptr[i + 1]) && (a_1_start_idx < a_1_columns_start + num_cols_a_1)) {
+      if (A_0_columns[A_0_start_idx] == A_0_columns[a_1_start_idx]) {
+        counter++;
+        A_0_start_idx++;
+        a_1_start_idx++;
+        num_ops += 6; // 4 + while 2
+      } else if (A_0_columns[A_0_start_idx] < A_0_columns[a_1_start_idx]) {
+        A_0_start_idx++;
+        num_ops += 4; // 2 + while 2
+      } else {
+        a_1_start_idx++;
+        num_ops += 4; // 2 + while 2
+      }
+    }
+
+    butterfly_count += (counter * counter - counter);
     num_ops += 5; // multiplication, subtraction, addition & assignment 3 + for loop 2
   }
 }
@@ -277,27 +310,27 @@ int main(int argc, char **argv) {
   printf("Testing kernel\n");
 
   // Read data from txt file
-  // // IA: row_ptr, JA: col_idx
-  // uint64_t A_0_columns_origin[MAX_EDGES], A_0_row_ptr_origin[MAX_EDGES];
-  // uint64_t node_count = read_edge_list_CSR("/afs/andrew.cmu.edu/usr10/xinyuc2/private/18645/project/butterfly/data/opsahl-collaboration/out.opsahl-collaboration", A_0_row_ptr_origin, A_0_columns_origin);
-  // int num_rows_A_0 = node_count;
-  // int num_cols_A_0 = node_count;
-  // printf("Node count = %d\n", node_count);
-  // printf("\n");
+  // IA: row_ptr, JA: col_idx
+  uint64_t A_0_columns_origin[MAX_EDGES], A_0_row_ptr_origin[MAX_EDGES];
+  uint64_t node_count = read_edge_list_CSR("/afs/andrew.cmu.edu/usr10/xinyuc2/private/18645/project/butterfly/data/opsahl-collaboration/out.opsahl-collaboration", A_0_row_ptr_origin, A_0_columns_origin);
+  int num_rows_A_0 = node_count;
+  int num_cols_A_0 = node_count;
+  printf("Node count = %d\n", node_count);
+  printf("\n");
 
-  // Example data in CSR format
-  int A_0_columns_origin[] = {0, 1, 3, 4, 5, 7, 8, 9, 1, 2, 6, 7, 8, 0,
-                              1, 2, 4, 8, 9, 1, 3, 4, 7, 1, 2, 4, 9, 3,
-                              4, 5, 6, 7, 8, 9, 4, 5, 6, 7, 8, 9, 0, 1,
-                              2, 3, 5, 8, 9, 0, 1, 3, 7, 1, 6, 7, 8, 9};
-  int A_0_row_ptr_origin[] = {0,  8,  13, 19, 23, 27,
-                              34, 40, 47, 51, 56}; // CSR row_ptr
-  int num_rows_A_0 = 10;
-  int num_cols_A_0 = 10;
+  // // Example data in CSR format
+  // int A_0_columns_origin[] = {0, 1, 3, 4, 5, 7, 8, 9, 1, 2, 6, 7, 8, 0,
+  //                             1, 2, 4, 8, 9, 1, 3, 4, 7, 1, 2, 4, 9, 3,
+  //                             4, 5, 6, 7, 8, 9, 4, 5, 6, 7, 8, 9, 0, 1,
+  //                             2, 3, 5, 8, 9, 0, 1, 3, 7, 1, 6, 7, 8, 9};
+  // int A_0_row_ptr_origin[] = {0,  8,  13, 19, 23, 27,
+  //                             34, 40, 47, 51, 56}; // CSR row_ptr
+  // int num_rows_A_0 = 10;
+  // int num_cols_A_0 = 10;
 
 
-  // // int runs = atoi(argv[1]);
-  int runs = 10;
+  // int runs = atoi(argv[1]);
+  int runs = 1;
 
   num_ops = 0;
   pad_csr(A_0_columns_origin, A_0_row_ptr_origin, num_rows_A_0);
@@ -309,25 +342,25 @@ int main(int argc, char **argv) {
       int a_1_columns_start = A_0_row_ptr[a_1_row];
       printf("row: %d\n", a_1_row);
       
-      // SIMD test
-      matrix_multiply_simd(A_0_columns, A_0_row_ptr, a_1_columns_start, a_1_row,
-                           num_cols_A_0, num_cols_a_1);
+      // // SIMD test
+      // matrix_multiply_simd(A_0_columns, A_0_row_ptr, a_1_columns_start, a_1_row,
+      //                      num_cols_A_0, num_cols_a_1);
       
-      // // Scalar test
-      // st = rdtsc();
+      // Scalar test
+      st = rdtsc();
       // matrix_multiply_scalar(A_0_columns, A_0_row_ptr, a_1_columns_start, a_1_row,
       //                      num_cols_A_0, num_cols_a_1);
-      // // matrix_multiply_scalar_two_pointer(A_0_columns, A_0_row_ptr, a_1_columns_start, a_1_row,
-      // //                      num_cols_A_0, num_cols_a_1);
-      // et = rdtsc();
-      // sum += (et - st);
+      matrix_multiply_scalar_two_pointer(A_0_columns, A_0_row_ptr, a_1_columns_start, a_1_row,
+                           num_cols_A_0, num_cols_a_1);
+      et = rdtsc();
+      sum += (et - st);
     }
     butterfly_count /= 2;
     printf("butterfly_count: %lld\n", butterfly_count);
   }
 
-  num_ops = 10144;  // needed for SIMD
-  // num_ops /= runs;   // needed for scalar
+  // num_ops = 2162;  // needed for SIMD
+  num_ops /= runs;   // needed for scalar
   printf("num_ops=%llu\n", num_ops);
   printf("RDTSC Base Cycles Taken: %llu\n\r", sum);
   printf("Latency: %lf\n\r", ((MAX_FREQ/BASE_FREQ) * sum) / (num_ops * runs));
