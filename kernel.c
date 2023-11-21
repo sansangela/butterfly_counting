@@ -24,20 +24,20 @@ static __inline__ unsigned long long rdtsc(void) {
   return ((unsigned long long)lo) | (((unsigned long long)hi) << 32);
 }
 
-// #define kernel_add2(r0, r1) r0 = _mm256_add_epi32(r0, r1);
+#define kernel_add2(r0, r1) r0 = _mm256_add_epi32(r0, r1);
 
-// #define kernel_add4(r0, r1, r2, r3)                                            \
-//   kernel_add2(r0, r1) kernel_add2(r2, r3) r0 = _mm256_add_epi32(r0, r2);
+#define kernel_add4(r0, r1, r2, r3)                                            \
+  kernel_add2(r0, r1) kernel_add2(r2, r3) r0 = _mm256_add_epi32(r0, r2);
 
-// #define kernel_add8(r0, r1, r2, r3, r4, r5, r6, r7)                            \
-//   kernel_add4(r0, r1, r2, r3) kernel_add4(r4, r5, r6, r7) r0 =                 \
-//       _mm256_add_epi32(r0, r4);
+#define kernel_add8(r0, r1, r2, r3, r4, r5, r6, r7)                            \
+  kernel_add4(r0, r1, r2, r3) kernel_add4(r4, r5, r6, r7) r0 =                 \
+      _mm256_add_epi32(r0, r4);
 
-// #define kernel_add16(r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12,    \
-//                      r13, r14, r15)                                            \
-//   kernel_add8(r0, r1, r2, r3, r4, r5, r6, r7)                                  \
-//       kernel_add8(r8, r9, r10, r11, r12, r13, r14, r15) r0 =                   \
-//           _mm256_add_epi32(r0, r8);
+#define kernel_add16(r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12,    \
+                     r13, r14, r15)                                            \
+  kernel_add8(r0, r1, r2, r3, r4, r5, r6, r7)                                  \
+      kernel_add8(r8, r9, r10, r11, r12, r13, r14, r15) r0 =                   \
+          _mm256_add_epi32(r0, r8);
 
 #define kernel1(A_0_columns, a1_broadcast, r0, j, flag)                        \
   r0 = _mm256_cmpeq_epi32(r0, a1_broadcast);                                   \
@@ -63,68 +63,68 @@ static __inline__ unsigned long long rdtsc(void) {
           kernel2(A_0_columns, a1_broadcast, r12, r13, j, flag)                \
               kernel1(A_0_columns, a1_broadcast, r14, j, flag)
 
-// int sum_up(int counter[], int size) {
-//   __m256i r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15;
+int sum_up(int counter[], int size) {
+  __m256i r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15;
 
-//   int result[8];
-//   int total_sum = 0;
+  int result[8];
+  int total_sum = 0;
 
-//   int i = 0;
-//   while (i < size) {
-//     if (i + 128 <= size) {
-//       r0 = _mm256_loadu_si256(&counter[i]);
-//       r1 = _mm256_loadu_si256(&counter[i + 8]);
-//       r2 = _mm256_loadu_si256(&counter[i + 16]);
-//       r3 = _mm256_loadu_si256(&counter[i + 24]);
-//       r4 = _mm256_loadu_si256(&counter[i + 32]);
-//       r5 = _mm256_loadu_si256(&counter[i + 40]);
-//       r6 = _mm256_loadu_si256(&counter[i + 48]);
-//       r7 = _mm256_loadu_si256(&counter[i + 56]);
-//       r8 = _mm256_loadu_si256(&counter[i + 64]);
-//       r9 = _mm256_loadu_si256(&counter[i + 72]);
-//       r10 = _mm256_loadu_si256(&counter[i + 80]);
-//       r11 = _mm256_loadu_si256(&counter[i + 88]);
-//       r12 = _mm256_loadu_si256(&counter[i + 96]);
-//       r13 = _mm256_loadu_si256(&counter[i + 104]);
-//       r14 = _mm256_loadu_si256(&counter[i + 112]);
-//       r15 = _mm256_loadu_si256(&counter[i + 120]);
-//       kernel_add16(r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13,
-//                    r14, r15);
-//       i += 128;
-//     } else if (i + 64 <= size) {
-//       r0 = _mm256_loadu_si256(&counter[i]);
-//       r1 = _mm256_loadu_si256(&counter[i + 8]);
-//       r2 = _mm256_loadu_si256(&counter[i + 16]);
-//       r3 = _mm256_loadu_si256(&counter[i + 24]);
-//       r4 = _mm256_loadu_si256(&counter[i + 32]);
-//       r5 = _mm256_loadu_si256(&counter[i + 40]);
-//       r6 = _mm256_loadu_si256(&counter[i + 48]);
-//       r7 = _mm256_loadu_si256(&counter[i + 56]);
-//       kernel_add8(r0, r1, r2, r3, r4, r5, r6, r7);
-//       i += 64;
-//     } else if (i + 32 <= size) {
-//       r0 = _mm256_loadu_si256(&counter[i]);
-//       r1 = _mm256_loadu_si256(&counter[i + 8]);
-//       r2 = _mm256_loadu_si256(&counter[i + 16]);
-//       r3 = _mm256_loadu_si256(&counter[i + 24]);
-//       kernel_add4(r0, r1, r2, r3);
-//       i += 32;
-//     } else if (i + 16 <= size) {
-//       r0 = _mm256_loadu_si256(&counter[i]);
-//       r1 = _mm256_loadu_si256(&counter[i + 8]);
-//       kernel_add2(r0, r1);
-//       i += 16;
-//     } else {
-//       r0 = _mm256_loadu_si256(&counter[i]);
-//       i += 8;
-//     }
-//     _mm256_storeu_si256(result, r0);
-//     for (int i = 0; i < 8; i++) {
-//       total_sum += result[i];
-//     }
-//   }
-//   return total_sum;
-// }
+  int i = 0;
+  while (i < size) {
+    if (i + 128 <= size) {
+      r0 = _mm256_loadu_si256(&counter[i]);
+      r1 = _mm256_loadu_si256(&counter[i + 8]);
+      r2 = _mm256_loadu_si256(&counter[i + 16]);
+      r3 = _mm256_loadu_si256(&counter[i + 24]);
+      r4 = _mm256_loadu_si256(&counter[i + 32]);
+      r5 = _mm256_loadu_si256(&counter[i + 40]);
+      r6 = _mm256_loadu_si256(&counter[i + 48]);
+      r7 = _mm256_loadu_si256(&counter[i + 56]);
+      r8 = _mm256_loadu_si256(&counter[i + 64]);
+      r9 = _mm256_loadu_si256(&counter[i + 72]);
+      r10 = _mm256_loadu_si256(&counter[i + 80]);
+      r11 = _mm256_loadu_si256(&counter[i + 88]);
+      r12 = _mm256_loadu_si256(&counter[i + 96]);
+      r13 = _mm256_loadu_si256(&counter[i + 104]);
+      r14 = _mm256_loadu_si256(&counter[i + 112]);
+      r15 = _mm256_loadu_si256(&counter[i + 120]);
+      kernel_add16(r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13,
+                   r14, r15);
+      i += 128;
+    } else if (i + 64 <= size) {
+      r0 = _mm256_loadu_si256(&counter[i]);
+      r1 = _mm256_loadu_si256(&counter[i + 8]);
+      r2 = _mm256_loadu_si256(&counter[i + 16]);
+      r3 = _mm256_loadu_si256(&counter[i + 24]);
+      r4 = _mm256_loadu_si256(&counter[i + 32]);
+      r5 = _mm256_loadu_si256(&counter[i + 40]);
+      r6 = _mm256_loadu_si256(&counter[i + 48]);
+      r7 = _mm256_loadu_si256(&counter[i + 56]);
+      kernel_add8(r0, r1, r2, r3, r4, r5, r6, r7);
+      i += 64;
+    } else if (i + 32 <= size) {
+      r0 = _mm256_loadu_si256(&counter[i]);
+      r1 = _mm256_loadu_si256(&counter[i + 8]);
+      r2 = _mm256_loadu_si256(&counter[i + 16]);
+      r3 = _mm256_loadu_si256(&counter[i + 24]);
+      kernel_add4(r0, r1, r2, r3);
+      i += 32;
+    } else if (i + 16 <= size) {
+      r0 = _mm256_loadu_si256(&counter[i]);
+      r1 = _mm256_loadu_si256(&counter[i + 8]);
+      kernel_add2(r0, r1);
+      i += 16;
+    } else {
+      r0 = _mm256_loadu_si256(&counter[i]);
+      i += 8;
+    }
+    _mm256_storeu_si256(result, r0);
+    for (int i = 0; i < 8; i++) {
+      total_sum += result[i];
+    }
+  }
+  return total_sum;
+}
 
 void matrix_multiply_simd(const int A_0_columns[], const int A_0_row_ptr[],
                           int a_1_columns_start, int num_rows_A_0,
@@ -217,7 +217,7 @@ void matrix_multiply_simd(const int A_0_columns[], const int A_0_row_ptr[],
 
 /* Data Preprocessing */
 // omit values as not relevant to the kenel
-void pad_csr(int *columns, int *row_ptr, int num_rows) {
+void pad_csr(uint64_t *columns, uint64_t *row_ptr, int num_rows) {
   // Calculate new length for values and columns
   int new_length = row_ptr[num_rows] + 8 * num_rows;
 
@@ -237,9 +237,10 @@ void pad_csr(int *columns, int *row_ptr, int num_rows) {
     }
   }
 
+  A_0_row_ptr[0] = row_ptr[0];
   // Update row_ptr
   for (int i = 1; i <= num_rows; i++) {
-    A_0_row_ptr[i] += row_ptr[i] + 8 * i;
+    A_0_row_ptr[i] = row_ptr[i] + 8 * i;
   }
 }
 
@@ -313,7 +314,7 @@ int main(int argc, char **argv) {
   // IA: row_ptr, JA: col_idx
   uint64_t A_0_columns_origin[MAX_EDGES], A_0_row_ptr_origin[MAX_EDGES];
   uint64_t node_count = read_edge_list_CSR("/afs/andrew.cmu.edu/usr10/xinyuc2/private/18645/project/butterfly/data/opsahl-collaboration/out.opsahl-collaboration", A_0_row_ptr_origin, A_0_columns_origin);
-  int num_rows_A_0 = node_count;
+  int num_rows_A_0 = 16726;
   int num_cols_A_0 = node_count;
   printf("Node count = %d\n", node_count);
   printf("\n");
@@ -327,6 +328,7 @@ int main(int argc, char **argv) {
   //                             34, 40, 47, 51, 56}; // CSR row_ptr
   // int num_rows_A_0 = 10;
   // int num_cols_A_0 = 10;
+  // int node_count = 10;
 
 
   // int runs = atoi(argv[1]);
@@ -342,25 +344,26 @@ int main(int argc, char **argv) {
       int a_1_columns_start = A_0_row_ptr[a_1_row];
       printf("row: %d\n", a_1_row);
       
-      // // SIMD test
-      // matrix_multiply_simd(A_0_columns, A_0_row_ptr, a_1_columns_start, a_1_row,
-      //                      num_cols_A_0, num_cols_a_1);
+      // SIMD test
+      matrix_multiply_simd(A_0_columns, A_0_row_ptr, a_1_columns_start, a_1_row,
+                           num_cols_A_0, num_cols_a_1);
       
-      // Scalar test
-      st = rdtsc();
+      // // Scalar test
+      // st = rdtsc();
       // matrix_multiply_scalar(A_0_columns, A_0_row_ptr, a_1_columns_start, a_1_row,
       //                      num_cols_A_0, num_cols_a_1);
-      matrix_multiply_scalar_two_pointer(A_0_columns, A_0_row_ptr, a_1_columns_start, a_1_row,
-                           num_cols_A_0, num_cols_a_1);
-      et = rdtsc();
-      sum += (et - st);
+      // // matrix_multiply_scalar_two_pointer(A_0_columns, A_0_row_ptr, a_1_columns_start, a_1_row,
+      // //                      num_cols_A_0, num_cols_a_1);
+      // et = rdtsc();
+      // sum += (et - st);
     }
     butterfly_count /= 2;
     printf("butterfly_count: %lld\n", butterfly_count);
   }
 
   // num_ops = 2162;  // needed for SIMD
-  num_ops /= runs;   // needed for scalar
+  num_ops=6344270925;
+  // num_ops /= runs;   // needed for scalar
   printf("num_ops=%llu\n", num_ops);
   printf("RDTSC Base Cycles Taken: %llu\n\r", sum);
   printf("Latency: %lf\n\r", ((MAX_FREQ/BASE_FREQ) * sum) / (num_ops * runs));
