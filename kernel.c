@@ -198,7 +198,7 @@ void matrix_multiply_simd(const int A_0_columns[], const int A_0_row_ptr[],
           kernel8(A_0_columns, a1_broadcast, r0, r1, r2, r3, r4, r5, r6, r7, j, flag);
           j += 64;
         } else if (j + 32 < A0_end) {
-          kernel4_dual(A_0_columns, a1_broadcast, a1_broadcast, r0, r1, r2, r3, r4, r5, r6, r7, j, flag);
+          kernel4(A_0_columns, a1_broadcast, r0, r1, r2, r3, j, flag);
           j += 32;
         } else if (j + 16 < A0_end) {
           kernel2(A_0_columns, a1_broadcast, r0, r1, j, flag);
@@ -348,7 +348,7 @@ int main(int argc, char **argv) {
     for (int a_1_row = 1; a_1_row < num_rows_A_0; ++a_1_row) {
       int num_cols_a_1 = A_0_row_ptr[a_1_row + 1] - A_0_row_ptr[a_1_row] - 8;
       int a_1_columns_start = A_0_row_ptr[a_1_row];
-      printf("row: %d\n", a_1_row);
+      // printf("row: %d\n", a_1_row);
       
       // SIMD test
       st = rdtsc();
@@ -372,7 +372,7 @@ int main(int argc, char **argv) {
 
   // num_ops = 2162;  // needed for SIMD
   num_ops=4673066757;
-  // num_ops /= runs;   // needed for scalar
+  num_ops /= runs;   // needed for scalar
   printf("num_ops=%llu\n", num_ops);
   printf("RDTSC Base Cycles Taken: %llu\n\r", sum);
   printf("Latency: %lf\n\r", ((MAX_FREQ/BASE_FREQ) * sum) / (num_ops * runs));
