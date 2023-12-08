@@ -3,17 +3,20 @@ Node count = 22015
 Scalar Baseline:
 	butterfly_count: 70549
 	num_ops: 4672991748
-	RDTSC Base Cycles Taken: 9740631346
-	Latency: 5.558541
-	Throughput: 0.179903
+	RDTSC Base Cycles Taken: 10475723306
+	Latency: 5.978025
+	Throughput: 0.167279
+	Elapsed Time: 6.565000
 SIMD:
 	butterfly_count: 70549
-	RDTSC Base Cycles Taken: 3599558354
-	Latency: 2.054106
-	Throughput: 0.486830
+	RDTSC Base Cycles Taken: 3577789978
+	Latency: 2.041684
+	Throughput: 0.489792
+	Elapsed Time: 8.060000
 Scalar Two Pointer:
 	butterfly_count: 70549
 	num_ops: 3521888409
-	RDTSC Base Cycles Taken: 5724249324
-	Latency: 4.334227
-	Throughput: 0.230722
+	RDTSC Base Cycles Taken: 5565898354
+	Latency: 4.214329
+	Throughput: 0.237286
+	Elapsed Time: 10.380000

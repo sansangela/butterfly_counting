@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <x86intrin.h>
 #include "graph_reader_csr.c"
+#include <time.h>
 
 #define MAX_FREQ 3.2
 #define BASE_FREQ 1.2
@@ -15,6 +16,11 @@ unsigned long long sum_scalar = 0;
 unsigned long long sum_simd = 0;
 unsigned long long sum_two_pointer = 0;
 unsigned long long num_ops = 0;
+
+clock_t start_time, end_time;
+double elapsed_time_scalar;
+double elapsed_time_simd;
+double elapsed_time_two_pointer;
 
 int *A_0_values = NULL;
 int *A_0_columns = NULL;
@@ -331,6 +337,7 @@ int main(int argc, char **argv) {
 
   /********** Scalar Baseline, Compute num_ops **********/
   printf("Scalar Baseline:\n");
+  start_time = clock();
   for (int run_id = 0; run_id < runs; run_id++) {
     butterfly_count = 0;
     num_ops = 0;
@@ -346,6 +353,8 @@ int main(int argc, char **argv) {
       sum_scalar += (et - st);
     }
     butterfly_count /= 2;
+    end_time = clock();
+    elapsed_time_scalar += (double)(end_time - start_time) / CLOCKS_PER_SEC;
     if (run_id == 0) {
       printf("\tbutterfly_count: %lld\n", butterfly_count);
       printf("\tnum_ops: %llu\n", num_ops);
@@ -354,11 +363,13 @@ int main(int argc, char **argv) {
   printf("\tRDTSC Base Cycles Taken: %llu\n", sum_scalar/runs);
   printf("\tLatency: %lf\n", ((MAX_FREQ/BASE_FREQ) * sum_scalar) / (num_ops * runs));
   printf("\tThroughput: %lf\n", (num_ops*runs)/((double)sum_scalar*MAX_FREQ/BASE_FREQ));
+  printf("\tElapsed Time: %lf\n", elapsed_time_scalar/runs);
 
 
   /********** SIMD **********/
   printf("SIMD:\n");
   for (int run_id = 0; run_id < runs; run_id++) {
+    start_time = clock();
     butterfly_count = 0;
     for (int a_1_row = 1; a_1_row < num_rows_A_0; ++a_1_row) {
       int num_cols_a_1 = A_0_row_ptr[a_1_row + 1] - A_0_row_ptr[a_1_row] - 8;
@@ -372,6 +383,8 @@ int main(int argc, char **argv) {
       sum_simd += (et - st);
     }
     butterfly_count /= 2;
+    end_time = clock();
+    elapsed_time_scalar += (double)(end_time - start_time) / CLOCKS_PER_SEC;
     if (run_id == 0) {
       printf("\tbutterfly_count: %lld\n", butterfly_count);
     }
@@ -379,11 +392,13 @@ int main(int argc, char **argv) {
   printf("\tRDTSC Base Cycles Taken: %llu\n", sum_simd/runs);
   printf("\tLatency: %lf\n", ((MAX_FREQ/BASE_FREQ) * sum_simd) / (num_ops * runs));
   printf("\tThroughput: %lf\n", (num_ops*runs)/((double)sum_simd*MAX_FREQ/BASE_FREQ));
+  printf("\tElapsed Time: %lf\n", elapsed_time_scalar/runs);
 
 
   /********** Scalar Two Pointer **********/
   printf("Scalar Two Pointer:\n");
   for (int run_id = 0; run_id < runs; run_id++) {
+    start_time = clock();
     butterfly_count = 0;
     num_ops = 0;
     for (int a_1_row = 1; a_1_row < num_rows_A_0; ++a_1_row) {
@@ -398,6 +413,8 @@ int main(int argc, char **argv) {
       sum_two_pointer += (et - st);
     }
     butterfly_count /= 2;
+    end_time = clock();
+    elapsed_time_scalar += (double)(end_time - start_time) / CLOCKS_PER_SEC;
     if (run_id == 0) {
       printf("\tbutterfly_count: %lld\n", butterfly_count);
       printf("\tnum_ops: %llu\n", num_ops);
@@ -406,6 +423,7 @@ int main(int argc, char **argv) {
   printf("\tRDTSC Base Cycles Taken: %llu\n", sum_two_pointer/runs);
   printf("\tLatency: %lf\n", ((MAX_FREQ/BASE_FREQ) * sum_two_pointer) / (num_ops * runs));
   printf("\tThroughput: %lf\n", (num_ops*runs)/((double)sum_two_pointer*MAX_FREQ/BASE_FREQ));
+  printf("\tElapsed Time: %lf\n", elapsed_time_scalar/runs);
 
   return 0;
 }
