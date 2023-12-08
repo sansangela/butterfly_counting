@@ -65,22 +65,3 @@ uint64_t read_edge_list_CSR(const char *pathname, uint64_t *IA, uint64_t *JA) {
 
     return node_count;
 }
-
-// int main() {
-//     uint64_t IA[MAX_EDGES], JA[MAX_EDGES];
-//     uint64_t node_count = read_edge_list_CSR("/afs/andrew.cmu.edu/usr10/xinyuc2/private/18645/project/butterfly/data/opsahl-collaboration/out.opsahl-collaboration", IA, JA);
-
-//     // Print IA and JA for verification
-//     // printf("IA: ");
-//     // for (uint64_t i = 0; i <= node_count; i++) {
-//     //     printf("%llu ", IA[i]);
-//     // }
-//     // printf("\nJA: ");
-//     // for (uint64_t i = 0; IA[node_count] > i; i++) {
-//     //     printf("%llu ", JA[i]);
-//     // }
-//     printf("Node count = %d\n", node_count);
-//     printf("\n");
-
-//     return 0;
-// }
