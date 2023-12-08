@@ -384,7 +384,7 @@ int main(int argc, char **argv) {
     }
     butterfly_count /= 2;
     end_time = clock();
-    elapsed_time_scalar += (double)(end_time - start_time) / CLOCKS_PER_SEC;
+    elapsed_time_simd += (double)(end_time - start_time) / CLOCKS_PER_SEC;
     if (run_id == 0) {
       printf("\tbutterfly_count: %lld\n", butterfly_count);
     }
@@ -392,7 +392,7 @@ int main(int argc, char **argv) {
   printf("\tRDTSC Base Cycles Taken: %llu\n", sum_simd/runs);
   printf("\tLatency: %lf\n", ((MAX_FREQ/BASE_FREQ) * sum_simd) / (num_ops * runs));
   printf("\tThroughput: %lf\n", (num_ops*runs)/((double)sum_simd*MAX_FREQ/BASE_FREQ));
-  printf("\tElapsed Time: %lf\n", elapsed_time_scalar/runs);
+  printf("\tElapsed Time: %lf\n", elapsed_time_simd/runs);
 
 
   /********** Scalar Two Pointer **********/
@@ -414,7 +414,7 @@ int main(int argc, char **argv) {
     }
     butterfly_count /= 2;
     end_time = clock();
-    elapsed_time_scalar += (double)(end_time - start_time) / CLOCKS_PER_SEC;
+    elapsed_time_two_pointer += (double)(end_time - start_time) / CLOCKS_PER_SEC;
     if (run_id == 0) {
       printf("\tbutterfly_count: %lld\n", butterfly_count);
       printf("\tnum_ops: %llu\n", num_ops);
@@ -423,7 +423,7 @@ int main(int argc, char **argv) {
   printf("\tRDTSC Base Cycles Taken: %llu\n", sum_two_pointer/runs);
   printf("\tLatency: %lf\n", ((MAX_FREQ/BASE_FREQ) * sum_two_pointer) / (num_ops * runs));
   printf("\tThroughput: %lf\n", (num_ops*runs)/((double)sum_two_pointer*MAX_FREQ/BASE_FREQ));
-  printf("\tElapsed Time: %lf\n", elapsed_time_scalar/runs);
+  printf("\tElapsed Time: %lf\n", elapsed_time_two_pointer/runs);
 
   return 0;
 }
