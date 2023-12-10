@@ -1,0 +1,22 @@
+./kernel.x
+Node count = 168337
+Scalar Baseline:
+	butterfly_count: 1086886
+	num_ops: 214050414249
+	RDTSC Base Cycles Taken: 493192735357
+	Latency: 6.144256
+	Throughput: 0.162754
+	Elapsed Time: 205.710000
+SIMD:
+	butterfly_count: 1086886
+	RDTSC Base Cycles Taken: 197494831971
+	Latency: 2.460415
+	Throughput: 0.406435
+	Elapsed Time: 82.370000
+Scalar Two Pointer:
+	butterfly_count: 1086886
+	num_ops: 231816638348
+	RDTSC Base Cycles Taken: 412363008218
+	Latency: 4.743554
+	Throughput: 0.210812
+	Elapsed Time: 172.010000
