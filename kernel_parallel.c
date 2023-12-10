@@ -331,7 +331,7 @@ int main(int argc, char **argv) {
   /********** User Defined Params **********/
   char path[] = "/afs/andrew.cmu.edu/usr10/xinyuc2/private/18645/project/butterfly/data/opsahl-collaboration/out.opsahl-collaboration";
   int num_rows_A_0 = 16726;
-  int runs = 1;
+  int runs = 10;
   int num_threads = 2;
 
   // Read data from txt file
@@ -352,7 +352,7 @@ int main(int argc, char **argv) {
       start_time = clock();
       long long butterfly_count = 0;
       num_ops = 0;
-      #pragma omp parallel for reduction(+:butterfly_count, num_ops)
+      #pragma omp parallel for reduction(+:butterfly_count, num_ops) num_threads(num_threads)
       for (int a_1_row = 1; a_1_row < num_rows_A_0; ++a_1_row) {
         int num_cols_a_1 = A_0_row_ptr[a_1_row + 1] - A_0_row_ptr[a_1_row] - 8;
         int a_1_columns_start = A_0_row_ptr[a_1_row];
