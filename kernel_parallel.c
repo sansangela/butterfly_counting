@@ -16,7 +16,7 @@ unsigned long long et;
 unsigned long long sum_scalar = 0;
 unsigned long long sum_simd = 0;
 unsigned long long sum_two_pointer = 0;
-unsigned long long num_ops = 0;
+// unsigned long long num_ops = 0;
 
 clock_t start_time, end_time;
 double elapsed_time_scalar;
@@ -277,7 +277,7 @@ long long matrix_multiply_scalar(const int A_0_columns[], const int A_0_row_ptr[
 
       // Scalar Baseline: Linear Search
       for (int j = A_0_row_ptr[i]; j < A_0_row_ptr[i + 1]; j++) {
-        num_ops++;
+        // num_ops++;
         if (A_0_columns[j] == A_0_columns[col_idx]) {
           counter++;
           break;
@@ -285,7 +285,7 @@ long long matrix_multiply_scalar(const int A_0_columns[], const int A_0_row_ptr[
       }
     }
     butterfly_count += counter * counter - counter;
-    num_ops += 3; // multiplication, subtraction, addition & assignment 3
+    // num_ops += 3; // multiplication, subtraction, addition & assignment 3
   }
 
   return butterfly_count;
@@ -309,18 +309,18 @@ long long matrix_multiply_scalar_two_pointer(const int A_0_columns[], const int 
         counter++;
         A_0_start_idx++;
         a_1_start_idx++;
-        num_ops += 4; 
+        // num_ops += 4; 
       } else if (A_0_columns[A_0_start_idx] < A_0_columns[a_1_start_idx]) {
         A_0_start_idx++;
-        num_ops += 2; 
+        // num_ops += 2; 
       } else {
         a_1_start_idx++;
-        num_ops += 2; 
+        // num_ops += 2; 
       }
     }
 
     butterfly_count += (counter * counter - counter);
-    num_ops += 5; // multiplication, subtraction, addition & assignment 3 + for loop 2
+    // num_ops += 5; // multiplication, subtraction, addition & assignment 3 + for loop 2
   }
 
   return butterfly_count;
@@ -328,11 +328,26 @@ long long matrix_multiply_scalar_two_pointer(const int A_0_columns[], const int 
 
 
 int main(int argc, char **argv) {
-  /********** User Defined Params **********/
-  char path[] = "/afs/andrew.cmu.edu/usr10/xinyuc2/private/18645/project/butterfly/data/opsahl-collaboration/out.opsahl-collaboration";
-  int num_rows_A_0 = 16726;
-  int runs = 10;
-  int num_threads = 2;
+/********** User Defined Params **********/
+  // char path[] = "/afs/andrew.cmu.edu/usr10/xinyuc2/private/18645/project/butterfly/data/test/input.txt";
+  // int num_rows_A_0 = 10;
+
+  // char path[] = "/afs/andrew.cmu.edu/usr10/xinyuc2/private/18645/project/butterfly/data/opsahl-collaboration/out.opsahl-collaboration";
+  // int num_rows_A_0 = 16726;
+
+  // // Producers
+  // char path[] = "/afs/andrew.cmu.edu/usr10/xinyuc2/private/18645/project/butterfly/data/dbpedia-producer/out.dbpedia-producer";
+  // int num_rows_A_0 = 48833;
+
+  // // Record Labels
+  // char path[] = "/afs/andrew.cmu.edu/usr10/xinyuc2/private/18645/project/butterfly/data/dbpedia-recordlabel/out.dbpedia-recordlabel";
+  // int num_rows_A_0 = 168337;
+
+  // Occupations
+  char path[] = "/afs/andrew.cmu.edu/usr10/xinyuc2/private/18645/project/butterfly/data/dbpedia-occupation/out.dbpedia-occupation";
+  int num_rows_A_0 = 127577;
+
+  int runs = 1;
 
   // Read data from txt file
   // IA: row_ptr, JA: col_idx
@@ -341,42 +356,40 @@ int main(int argc, char **argv) {
   int num_cols_A_0 = node_count;
   printf("Node count = %d\n", node_count-1);  // 1-index
 
-  num_ops = 0;
+  // num_ops = 0;
   pad_csr(A_0_columns_origin, A_0_row_ptr_origin, num_rows_A_0);
 
-  for (int num_threads = 10; num_threads < 100; num_threads+=10) {
+  for (int num_threads = 1; num_threads < 41; num_threads++) {
+    elapsed_time_scalar = 0;
+    elapsed_time_simd = 0;
+    elapsed_time_two_pointer = 0;
 
-    /********** Scalar Baseline, Compute num_ops **********/
+    printf("%d threads\n", num_threads);
+    /********** Scalar Baseline **********/
     printf("Scalar Baseline:\n");
     for (int run_id = 0; run_id < runs; run_id++) {
-      start_time = clock();
+      st = rdtsc();
+
       long long butterfly_count = 0;
-      num_ops = 0;
-      #pragma omp parallel for reduction(+:butterfly_count, num_ops) num_threads(num_threads)
+
+      #pragma omp parallel for reduction(+:butterfly_count) num_threads(num_threads) schedule(dynamic)
       for (int a_1_row = 1; a_1_row < num_rows_A_0; ++a_1_row) {
         int num_cols_a_1 = A_0_row_ptr[a_1_row + 1] - A_0_row_ptr[a_1_row] - 8;
         int a_1_columns_start = A_0_row_ptr[a_1_row];
 
         // Scalar test
-        st = rdtsc();
-        butterfly_count = matrix_multiply_scalar(A_0_columns, A_0_row_ptr, a_1_columns_start, a_1_row,
-                            num_cols_A_0, num_cols_a_1, butterfly_count);
-        et = rdtsc();
-        sum_scalar += (et - st);
-
-        int thread_id = omp_get_thread_num();
-        int num_threads = omp_get_num_threads();
-        if (run_id == 0 && thread_id == 0 && a_1_row == 1) {
-          printf("\t%d threads\n", num_threads);
-        }
+        butterfly_count += matrix_multiply_scalar(A_0_columns, A_0_row_ptr, a_1_columns_start, a_1_row,
+                            num_cols_A_0, num_cols_a_1, 0);
+        
       }
 
       butterfly_count /= 2;
-      end_time = clock();
-      elapsed_time_scalar += (double)(end_time - start_time) / CLOCKS_PER_SEC;
+
+      et = rdtsc();
+      elapsed_time_scalar += (et - st);
+
       if (run_id == 0) {
         printf("\tbutterfly_count: %lld\n", butterfly_count);
-        printf("\tnum_ops: %llu\n", num_ops);
       }
     }
     printf("\tElapsed Time: %lf\n", elapsed_time_scalar/runs);
@@ -385,69 +398,46 @@ int main(int argc, char **argv) {
     /********** SIMD **********/
     printf("SIMD:\n");
     for (int run_id = 0; run_id < runs; run_id++) {
-      start_time = clock();
+     
+      st = rdtsc();
       long long butterfly_count = 0;
-      #pragma omp parallel for reduction(+:butterfly_count) num_threads(num_threads)
+      #pragma omp parallel for reduction(+:butterfly_count) num_threads(num_threads) schedule(dynamic)
       for (int a_1_row = 1; a_1_row < num_rows_A_0; ++a_1_row) {
         int num_cols_a_1 = A_0_row_ptr[a_1_row + 1] - A_0_row_ptr[a_1_row] - 8;
         int a_1_columns_start = A_0_row_ptr[a_1_row];
 
-        // SIMD test
-        st = rdtsc();
-        butterfly_count = matrix_multiply_simd(A_0_columns, A_0_row_ptr, a_1_columns_start, a_1_row,
-                            num_cols_A_0, num_cols_a_1, butterfly_count);
-        et = rdtsc();
-        sum_simd += (et - st);
-        
-        int thread_id = omp_get_thread_num();
-        int num_threads = omp_get_num_threads();
-        if (run_id == 0 && thread_id == 0 && a_1_row == 1) {
-          printf("\t%d threads\n", num_threads);
-        }
+        butterfly_count += matrix_multiply_simd(A_0_columns, A_0_row_ptr, a_1_columns_start, a_1_row,
+                            num_cols_A_0, num_cols_a_1, 0);
       }
       butterfly_count /= 2;
-      end_time = clock();
-      elapsed_time_simd += (double)(end_time - start_time) / CLOCKS_PER_SEC;
+      et = rdtsc();
+      elapsed_time_simd += (et - st);
       if (run_id == 0) {
         printf("\tbutterfly_count: %lld\n", butterfly_count);
       }
     }
-    printf("\tRDTSC Base Cycles Taken: %llu\n", sum_simd/runs);
-    printf("\tLatency: %lf\n", ((MAX_FREQ/BASE_FREQ) * sum_simd) / (num_ops * runs));
-    printf("\tThroughput: %lf\n", (num_ops*runs)/((double)sum_simd*MAX_FREQ/BASE_FREQ));
     printf("\tElapsed Time: %lf\n", elapsed_time_simd/runs);
 
 
     /********** Scalar Two Pointer **********/
     printf("Scalar Two Pointer:\n");
     for (int run_id = 0; run_id < runs; run_id++) {
-      start_time = clock();
+      st = rdtsc();
       long long butterfly_count = 0;
-      num_ops = 0;
-      #pragma omp parallel for reduction(+:butterfly_count, num_ops) num_threads(num_threads)
+      #pragma omp parallel for reduction(+:butterfly_count) num_threads(num_threads) schedule(dynamic)
       for (int a_1_row = 1; a_1_row < num_rows_A_0; ++a_1_row) {
         int num_cols_a_1 = A_0_row_ptr[a_1_row + 1] - A_0_row_ptr[a_1_row] - 8;
         int a_1_columns_start = A_0_row_ptr[a_1_row];
 
         // Scalar Two Pointer Test
-        st = rdtsc();
-        butterfly_count = matrix_multiply_scalar_two_pointer(A_0_columns, A_0_row_ptr, a_1_columns_start, a_1_row,
-                        num_cols_A_0, num_cols_a_1, butterfly_count);
-        et = rdtsc();
-        sum_two_pointer += (et - st);
-
-        int thread_id = omp_get_thread_num();
-        int num_threads = omp_get_num_threads();
-        if (run_id == 0 && thread_id == 0 && a_1_row == 1) {
-          printf("\t%d threads\n", num_threads);
-        }
+        butterfly_count += matrix_multiply_scalar_two_pointer(A_0_columns, A_0_row_ptr, a_1_columns_start, a_1_row,
+                        num_cols_A_0, num_cols_a_1, 0);
       }
       butterfly_count /= 2;
-      end_time = clock();
-      elapsed_time_two_pointer += (double)(end_time - start_time) / CLOCKS_PER_SEC;
+      et = rdtsc();
+      elapsed_time_two_pointer += (et - st);
       if (run_id == 0) {
         printf("\tbutterfly_count: %lld\n", butterfly_count);
-        printf("\tnum_ops: %llu\n", num_ops);
       }
     }
     printf("\tElapsed Time: %lf\n", elapsed_time_two_pointer/runs);

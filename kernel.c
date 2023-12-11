@@ -319,9 +319,26 @@ void matrix_multiply_scalar_two_pointer(const int A_0_columns[], const int A_0_r
 
 int main(int argc, char **argv) {
   /********** User Defined Params **********/
-  char path[] = "/afs/andrew.cmu.edu/usr10/xinyuc2/private/18645/project/butterfly/data/opsahl-collaboration/out.opsahl-collaboration";
-  int num_rows_A_0 = 16726;
-  int runs = 2;
+  // // Arxiv cond-mat
+  // char path[] = "/afs/andrew.cmu.edu/usr10/xinyuc2/private/18645/project/butterfly/data/opsahl-collaboration/out.opsahl-collaboration";
+  // int num_rows_A_0 = 16726;
+
+  // // Producers
+  // char path[] = "/afs/andrew.cmu.edu/usr10/xinyuc2/private/18645/project/butterfly/data/dbpedia-producer/out.dbpedia-producer";
+  // int num_rows_A_0 = 48833;
+    
+  // Record Labels
+  char path[] = "/afs/andrew.cmu.edu/usr10/xinyuc2/private/18645/project/butterfly/data/dbpedia-recordlabel/out.dbpedia-recordlabel";
+  int num_rows_A_0 = 168337;
+
+  // // Occupations
+  // char path[] = "/afs/andrew.cmu.edu/usr10/xinyuc2/private/18645/project/butterfly/data/dbpedia-occupation/out.dbpedia-occupation";
+  // int num_rows_A_0 = 127577;
+
+  // char path[] = "/afs/andrew.cmu.edu/usr10/xinyuc2/private/18645/project/butterfly/data/github/out.github";
+  // int num_rows_A_0 = 56519;
+
+  int runs = 1;
 
   // Read data from txt file
   // IA: row_ptr, JA: col_idx

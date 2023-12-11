@@ -3,7 +3,10 @@
 #include <stdint.h>
 #include <string.h>
 
-#define MAX_EDGES 60000 // Adjust this based on expected input size
+// #define MAX_EDGES 60000 // Adjust this based on expected input size
+#define MAX_EDGES 251000 // Adjust this based on expected input size
+// #define MAX_EDGES 450000 // Adjust this based on expected input size
+
 
 typedef struct {
     uint64_t first;
