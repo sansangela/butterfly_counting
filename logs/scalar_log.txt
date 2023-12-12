@@ -1,0 +1,11 @@
+./kernel.x
+Testing kernel
+Node count = 22016
+
+butterfly_count: 70549
+num_ops=4673066757
+RDTSC Base Cycles Taken: 10066526625
+
+Latency: 5.744423
+
+Throughput: 0.174082
